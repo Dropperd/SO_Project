@@ -53,7 +53,12 @@ if (pids[i] == 0) {
 
 while ((n = read (source, buffer, sizeof(buffer))) > 0){
 
-printf("%d",n);
+for (char *p = strtok(buffer,";"); p != NULL; p = strtok(NULL, " "))
+{
+  puts(p);
+}
+
+//printf("%d",n);
 
 }
 
