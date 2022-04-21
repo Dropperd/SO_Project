@@ -21,7 +21,6 @@ typedef struct line{
 int main(int argc, char **argv, char **envp){		// Command Line Arguments
 	char temp[MAX100];
 	int fds[2],source,destination,wcf;
-	int esperaTriagem, triagem, salaEspera, consulta;
 	int N_LINHAS;
 	char buffer[1024],wc[10];
 	pipe(fds);
@@ -54,58 +53,33 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 	FILE *fp=fopen("all_timestamps.csv","r");
 	if(fp==NULL){
 		puts("erro fp");
-		return -1;
+		exit(-1);
 	}
-	fscanf(fp,"%s",temp);
+	fscanf(fp,"%*s",temp);
 	printf("LINHAS: %d\n",N_LINHAS);
-	LINE * tmp=linhas;
+	LINE * tmp=linhas;	//apontador temporario para nao desconfigurar apontador inicial da struct
 	for(int i=0;i<N_LINHAS-1;i++){
 		fscanf(fp,"%ld %*[;] %ld %*[;] %ld %*[;] %ld %*[;] %ld %*[\n]",&(tmp->admissao),&(tmp->inicio_triagem),&(tmp->fim_triagem),&(tmp->inicio_medico),&(tmp->fim_medico));
 		tmp++;
 	}
-	tmp=linhas;
-	//LOOP PARA IMPRIMIR TODAS AS OCCORRENCIAS DA STRUCT
+	tmp=linhas;	//reset no apontador temporario para a struct
+	/*LOOP PARA IMPRIMIR TODAS AS OCCORRENCIAS DA STRUCT
 	for(int i=0;i<N_LINHAS-1;i++){
 		printf("LINHA:%d ||| %ld %ld %ld %ld %ld\n",i+2,tmp->admissao,tmp->inicio_triagem,tmp->fim_triagem,tmp->inicio_medico,tmp->fim_medico);
 		tmp++;
-	}
-/*
- long int timestamp=1425448140;
-
- esperaTriagem=triagem=salaEspera=consulta=0;
-
-for (int l = 0; l < N_LINHAS-1; l++)
-{
-	/*if(tmp->admissao < timestamp && timestamp< tmp->inicio_triagem){
-		esperaTriagem++;
-	}
-	if(tmp->inicio_triagem < timestamp && timestamp< tmp->fim_triagem){
-		triagem++;
-	}
-	if(tmp->fim_triagem < timestamp && timestamp< tmp->inicio_medico){
-		salaEspera++;
 	}*/
-	/*if(tmp->inicio_medico < timestamp && timestamp< tmp->fim_medico){
-		consulta++;
-		printf("%ld |||| %ld\n",tmp->inicio_medico,tmp->fim_medico);
-	}
-	tmp++;
-}*/
-
-
-
-
-printf("Espera Triagem:%d\nTriagem:%d\nSala Espera:%d\nConsulta:%d\n",esperaTriagem,triagem,salaEspera,consulta);
-
-	  /*
 	for(int i=0;i<number_pids;i++){ //create child processes
 		if (pids[i]= fork() == -1){
     		perror("Fork");
     		exit(1);
   		} 
-		if (pids[i] == 0) { 
-		
-		}
+  		int s_admissao=0,s_triagem=0,s_espera=0,s_consulta=0;
+		/*if (pids[i] == 0) { 
+			for(int j=i;j<N_LINHAS-1-i;j++){
+				tmp+=j;
+				if()
+			}
+		}*/
 		exit(0); 
-	}*/
+	}
 }
