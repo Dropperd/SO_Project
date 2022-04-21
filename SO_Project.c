@@ -21,6 +21,7 @@ typedef struct line{
 int main(int argc, char **argv, char **envp){		// Command Line Arguments
 	char temp[MAX100];
 	int fds[2],source,destination,wcf;
+	int esperaTriagem, triagem, salaEspera, consulta;
 	int N_LINHAS;
 	char buffer[1024],wc[10];
 	pipe(fds);
@@ -55,7 +56,7 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 		puts("erro fp");
 		return -1;
 	}
-	fscanf(fp,"%*s",temp);
+	fscanf(fp,"%s",temp);
 	printf("LINHAS: %d\n",N_LINHAS);
 	LINE * tmp=linhas;
 	for(int i=0;i<N_LINHAS-1;i++){
@@ -63,12 +64,41 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 		tmp++;
 	}
 	tmp=linhas;
-	/*LOOP PARA IMPRIMIR TODAS AS OCCORRENCIAS DA STRUCT
+	//LOOP PARA IMPRIMIR TODAS AS OCCORRENCIAS DA STRUCT
 	for(int i=0;i<N_LINHAS-1;i++){
 		printf("LINHA:%d ||| %ld %ld %ld %ld %ld\n",i+2,tmp->admissao,tmp->inicio_triagem,tmp->fim_triagem,tmp->inicio_medico,tmp->fim_medico);
 		tmp++;
+	}
+/*
+ long int timestamp=1425448140;
+
+ esperaTriagem=triagem=salaEspera=consulta=0;
+
+for (int l = 0; l < N_LINHAS-1; l++)
+{
+	/*if(tmp->admissao < timestamp && timestamp< tmp->inicio_triagem){
+		esperaTriagem++;
+	}
+	if(tmp->inicio_triagem < timestamp && timestamp< tmp->fim_triagem){
+		triagem++;
+	}
+	if(tmp->fim_triagem < timestamp && timestamp< tmp->inicio_medico){
+		salaEspera++;
 	}*/
-	/*for(int i=0;i<number_pids;i++){ //create child processes
+	/*if(tmp->inicio_medico < timestamp && timestamp< tmp->fim_medico){
+		consulta++;
+		printf("%ld |||| %ld\n",tmp->inicio_medico,tmp->fim_medico);
+	}
+	tmp++;
+}*/
+
+
+
+
+printf("Espera Triagem:%d\nTriagem:%d\nSala Espera:%d\nConsulta:%d\n",esperaTriagem,triagem,salaEspera,consulta);
+
+	  /*
+	for(int i=0;i<number_pids;i++){ //create child processes
 		if (pids[i]= fork() == -1){
     		perror("Fork");
     		exit(1);
