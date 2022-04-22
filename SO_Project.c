@@ -77,32 +77,24 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 		long s_admissao=0,s_triagem=0,s_espera=0,s_consulta=0,timestamp=linhas->admissao;
 		if (pids[i] == 0) { 
 			int mypid=getpid();
-			for(int k=0;N_LINHAS-1;k++){
+			for(int k=0;k<1;k++){//apenas 1 ciclo para testar (testado com 6 filhos, corre corretamente e imprime 24 linhas de resultado -> 6*4)
 				for(int j=i;j<N_LINHAS-1;j+=number_pids){
 					tmpReset+=i;
-					if(tmpReset->admissao < timestamp && timestamp< tmpReset->inicio_triagem){
-						s_admissao++;
-					}
-					if(tmpReset->inicio_triagem < timestamp && timestamp< tmpReset->fim_triagem){
-						s_triagem++;
-					}
-					if(tmpReset->fim_triagem < timestamp && timestamp< tmpReset->inicio_medico){
-						s_espera++;
-					}
-					if(tmpReset->inicio_medico < timestamp && timestamp< tmpReset->fim_medico){
-						s_consulta++;
-					}
+					if(tmpReset->admissao < timestamp && timestamp< tmpReset->inicio_triagem) s_admissao++;
+					if(tmpReset->inicio_triagem < timestamp && timestamp< tmpReset->fim_triagem) s_triagem++;
+					if(tmpReset->fim_triagem < timestamp && timestamp< tmpReset->inicio_medico) s_espera++;
+					if(tmpReset->inicio_medico < timestamp && timestamp< tmpReset->fim_medico) s_consulta++;
 				}
 				tmpReset=linhas;
-				sprintf(buf,"%d$%d,%ld,espera_triagem,%ld\n",mypid,k,timestamp,s_admissao);
+				sprintf(buf,"%d$%d,%ld,espera_triagem#%ld\n",mypid,k,timestamp,s_admissao);
 				write(destination,buf,strlen(buf));
-				sprintf(buf,"%d$%d,%ld,sala_triagem,%d\n",mypid,k,timestamp,s_triagem);
+				sprintf(buf,"%d$%d,%ld,sala_triagem#%ld\n",mypid,k,timestamp,s_triagem);
 				write(destination,buf,strlen(buf));
-				sprintf(buf,"%d$%d,%ld,sala_espera,%d\n",mypid,k,timestamp,s_espera);
+				sprintf(buf,"%d$%d,%ld,sala_espera#%ld\n",mypid,k,timestamp,s_espera);
 				write(destination,buf,strlen(buf));
-				sprintf(buf,"%d$%d,%ld,sala_consulta,%d\n",mypid,k,timestamp,s_consulta);
+				sprintf(buf,"%d$%d,%ld,sala_consulta#%ld\n",mypid,k,timestamp,s_consulta);
 				write(destination,buf,strlen(buf));
-				//pid$id,timestamp,sala#ocupação 516850
+				//pid$id,timestamp,sala#ocupação
 				tmpStamp++;
 				timestamp=tmpStamp->admissao;
 				s_admissao=s_triagem=s_espera=s_consulta=0;
