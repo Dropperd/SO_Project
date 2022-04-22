@@ -69,6 +69,8 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 		printf("LINHA:%d ||| %ld %ld %ld %ld %ld\n",i+2,tmpReset->admissao,tmpReset->inicio_triagem,tmpReset->fim_triagem,tmpReset->inicio_medico,tmpReset->fim_medico);
 		tmpReset++;
 	}*/
+	int status=0;
+	pid_t wpid;
 	for(int i=0;i<number_pids;i++){ //create child processes
 		if ((pids[i]=fork())==-1){
 			perror("Fork");
@@ -77,7 +79,7 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 		long s_admissao=0,s_triagem=0,s_espera=0,s_consulta=0,timestamp=linhas->admissao;
 		if (pids[i] == 0) { 
 			int mypid=getpid();
-			for(int k=0;k<1;k++){//apenas 1 ciclo para testar (testado com 6 filhos, corre corretamente e imprime 24 linhas de resultado -> 6*4)
+			for(int k=0;k<N_LINHAS-1;k++){//apenas 1 ciclo para testar (testado com 6 filhos, corre corretamente e imprime 24 linhas de resultado -> 6*4)
 				for(int j=i;j<N_LINHAS-1;j+=number_pids){
 					tmpReset+=i;
 					if(tmpReset->admissao < timestamp && timestamp< tmpReset->inicio_triagem) s_admissao++;
@@ -100,10 +102,11 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 				s_admissao=s_triagem=s_espera=s_consulta=0;
 			}
 			close(destination);
-			exit(0);
+			exit(1);
 		}
 		else{
-			wait(NULL);
+			while((wpid=wait(&status))>0);
+			printf("DONE");
 		}
 	}
 	return 0;
