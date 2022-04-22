@@ -64,19 +64,28 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 		tmp++;
 	}
 	tmp=linhas;
-	//LOOP PARA IMPRIMIR TODAS AS OCCORRENCIAS DA STRUCT
+	/*//LOOP PARA IMPRIMIR TODAS AS OCCORRENCIAS DA STRUCT
 	for(int i=0;i<N_LINHAS-1;i++){
 		printf("LINHA:%d ||| %ld %ld %ld %ld %ld\n",i+2,tmp->admissao,tmp->inicio_triagem,tmp->fim_triagem,tmp->inicio_medico,tmp->fim_medico);
 		tmp++;
-	}
-/*
+	}*/
+
  long int timestamp=1425448140;
 
  esperaTriagem=triagem=salaEspera=consulta=0;
 
-for (int l = 0; l < N_LINHAS-1; l++)
+	  
+	for(int i=0;i<number_pids;i++){ //create child processes
+		if (pids[i]= fork() == -1){
+    		perror("Fork");
+    		exit(1);
+  		} 
+		if (pids[i] == 0) { 
+			
+		for (int j = i; j < N_LINHAS-1; j+=number_pids)
 {
-	/*if(tmp->admissao < timestamp && timestamp< tmp->inicio_triagem){
+	tmp+=j;
+	if(tmp->admissao < timestamp && timestamp< tmp->inicio_triagem){
 		esperaTriagem++;
 	}
 	if(tmp->inicio_triagem < timestamp && timestamp< tmp->fim_triagem){
@@ -84,28 +93,17 @@ for (int l = 0; l < N_LINHAS-1; l++)
 	}
 	if(tmp->fim_triagem < timestamp && timestamp< tmp->inicio_medico){
 		salaEspera++;
-	}*/
-	/*if(tmp->inicio_medico < timestamp && timestamp< tmp->fim_medico){
-		consulta++;
-		printf("%ld |||| %ld\n",tmp->inicio_medico,tmp->fim_medico);
 	}
-	tmp++;
-}*/
+	if(tmp->inicio_medico < timestamp && timestamp< tmp->fim_medico){
+		consulta++;
+		//printf("%ld |||| %ld\n",tmp->inicio_medico,tmp->fim_medico);
+	}
+	
+}
 
 
-
-
-printf("Espera Triagem:%d\nTriagem:%d\nSala Espera:%d\nConsulta:%d\n",esperaTriagem,triagem,salaEspera,consulta);
-
-	  /*
-	for(int i=0;i<number_pids;i++){ //create child processes
-		if (pids[i]= fork() == -1){
-    		perror("Fork");
-    		exit(1);
-  		} 
-		if (pids[i] == 0) { 
-		
 		}
+		printf("Espera Triagem:%d\nTriagem:%d\nSala Espera:%d\nConsulta:%d\n",esperaTriagem,triagem,salaEspera,consulta);
 		exit(0); 
-	}*/
+	}
 }
