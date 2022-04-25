@@ -30,7 +30,7 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 		exit(1);
 	}
 	int number_pids = atoi(argv[1]);
-	pid_t pids[number_pids];
+	int pids[number_pids];
 	source = open (argv[2], O_RDONLY);
 	if (source == -1) {
 		perror ("Opening Source File");
@@ -55,58 +55,59 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 		puts("erro fp");
 		exit(-1);
 	}
-	fscanf(fp,"%*s",temp);
+	fscanf(fp,"%s",temp);//apenas ignora a primeira linha do ficheiro
 	printf("LINHAS: %d\n",N_LINHAS);
-	LINE * tmpReset=linhas;	//apontador temporario para nao desconfigurar apontador inicial da struct
+	LINE * tmpLines=linhas;	//apontador temporario para nao desconfigurar apontador inicial da struct
 	LINE * tmpStamp=linhas;	//apontador temporario para nao desconfigurar apontador inicial da struct
 	for(int i=0;i<N_LINHAS-1;i++){
-		fscanf(fp,"%ld %*[;] %ld %*[;] %ld %*[;] %ld %*[;] %ld %*[\n]",&(tmpReset->admissao),&(tmpReset->inicio_triagem),&(tmpReset->fim_triagem),&(tmpReset->inicio_medico),&(tmpReset->fim_medico));
-		tmpReset++;
+		fscanf(fp,"%ld %*[;] %ld %*[;] %ld %*[;] %ld %*[;] %ld %*[\n]",&(tmpLines->admissao),&(tmpLines->inicio_triagem),&(tmpLines->fim_triagem),&(tmpLines->inicio_medico),&(tmpLines->fim_medico));
+		tmpLines++;
 	}
-	tmpReset=linhas;	//reset no apontador temporario para a struct
+	tmpLines=linhas;	//reset no apontador temporario para a struct
 	/*LOOP PARA IMPRIMIR TODAS AS OCCORRENCIAS DA STRUCT
 	for(int i=0;i<N_LINHAS-1;i++){
-		printf("LINHA:%d ||| %ld %ld %ld %ld %ld\n",i+2,tmpReset->admissao,tmpReset->inicio_triagem,tmpReset->fim_triagem,tmpReset->inicio_medico,tmpReset->fim_medico);
-		tmpReset++;
+		printf("LINHA:%d ||| %ld %ld %ld %ld %ld\n",i+2,tmpLines->admissao,tmpLines->inicio_triagem,tmpLines->fim_triagem,tmpLines->inicio_medico,tmpLines->fim_medico);
+		tmpLines++;
 	}*/
-	int status=0;
-	pid_t wpid;
+	long s_admissao=0,s_triagem=0,s_espera=0,s_consulta=0,timestamp;
 	for(int i=0;i<number_pids;i++){ //create child processes
 		if ((pids[i]=fork())==-1){
 			perror("Fork");
 			exit(1);
-		}
-		long s_admissao=0,s_triagem=0,s_espera=0,s_consulta=0,timestamp=linhas->admissao;
+		}	
 		if (pids[i] == 0) { 
-			int mypid=getpid();
-			for(int k=0;k<N_LINHAS-1;k++){//apenas 1 ciclo para testar (testado com 6 filhos, corre corretamente e imprime 24 linhas de resultado -> 6*4)
-				for(int j=i;j<N_LINHAS-1;j+=number_pids){
-					tmpReset+=i;
-					if(tmpReset->admissao < timestamp && timestamp< tmpReset->inicio_triagem) s_admissao++;
-					if(tmpReset->inicio_triagem < timestamp && timestamp< tmpReset->fim_triagem) s_triagem++;
-					if(tmpReset->fim_triagem < timestamp && timestamp< tmpReset->inicio_medico) s_espera++;
-					if(tmpReset->inicio_medico < timestamp && timestamp< tmpReset->fim_medico) s_consulta++;
+			pid_t mypid=getpid();
+			for(int j=i;j<N_LINHAS-1;j+=number_pids){
+				tmpStamp+=number_pids;
+				timestamp=tmpStamp->admissao;
+				for(int k=0;k<N_LINHAS-1;k++){					
+					if(tmpLines->admissao < timestamp && timestamp< tmpLines->inicio_triagem) s_admissao++;
+					if(tmpLines->inicio_triagem < timestamp && timestamp< tmpLines->fim_triagem) s_triagem++;
+					if(tmpLines->fim_triagem < timestamp && timestamp< tmpLines->inicio_medico) s_espera++;
+					if(tmpLines->inicio_medico < timestamp && timestamp< tmpLines->fim_medico) s_consulta++;
+					tmpLines++;
 				}
-				tmpReset=linhas;
-				sprintf(buf,"%d$%d,%ld,espera_triagem#%ld\n",mypid,k,timestamp,s_admissao);
+				tmpLines=linhas;
+				sprintf(buf,"%d$%d,%ld,espera_triagem#%ld\n",mypid,j,timestamp,s_admissao);
 				write(destination,buf,strlen(buf));
-				sprintf(buf,"%d$%d,%ld,sala_triagem#%ld\n",mypid,k,timestamp,s_triagem);
+				sprintf(buf,"%d$%d,%ld,sala_triagem#%ld\n",mypid,j,timestamp,s_triagem);
 				write(destination,buf,strlen(buf));
-				sprintf(buf,"%d$%d,%ld,sala_espera#%ld\n",mypid,k,timestamp,s_espera);
+				sprintf(buf,"%d$%d,%ld,sala_espera#%ld\n",mypid,j,timestamp,s_espera);
 				write(destination,buf,strlen(buf));
-				sprintf(buf,"%d$%d,%ld,sala_consulta#%ld\n",mypid,k,timestamp,s_consulta);
+				sprintf(buf,"%d$%d,%ld,sala_consulta#%ld\n",mypid,j,timestamp,s_consulta);
 				write(destination,buf,strlen(buf));
 				//pid$id,timestamp,sala#ocupação
-				tmpStamp++;
-				timestamp=tmpStamp->admissao;
 				s_admissao=s_triagem=s_espera=s_consulta=0;
 			}
 			close(destination);
-			exit(1);
-		}
-		else{
-			while((wpid=wait(&status))>0);
-			printf("DONE");
+			exit(0);
+		}	
+	}
+	for(int l=0;l<number_pids;l++){
+   		int result;
+        waitpid(pids[l],&result,0);
+        if(WIFEXITED(result)){
+            printf("O pai recebeu : %d (processo %d)\n",WEXITSTATUS(result),pids[l]);
 		}
 	}
 	return 0;
