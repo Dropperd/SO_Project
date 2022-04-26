@@ -81,10 +81,10 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 			close(fds[0]);
 			pid_t mypid=getpid();
 			tmpStamp+=i;
-			for(int j=i;j<3-1;j+=number_pids){
+			for(int j=i;j<N_LINHAS-1;j+=number_pids){
 				timestamp=tmpStamp->admissao;
 				if(timestamp!=9999){ 
-				for(int k=0;k<3-1;k++){
+				for(int k=0;k<N_LINHAS-1;k++){
 						if(tmpLines->admissao < timestamp && timestamp <= tmpLines->inicio_triagem && tmpLines->admissao != 9999 && tmpLines->inicio_triagem != 9999)s_admissao++;
 						if(tmpLines->inicio_triagem < timestamp && timestamp <= tmpLines->fim_triagem && tmpLines->inicio_triagem != 9999 && tmpLines->fim_triagem != 9999)s_triagem++;
 						if(tmpLines->fim_triagem < timestamp && timestamp <= tmpLines->inicio_medico && tmpLines->fim_triagem != 9999 && tmpLines->inicio_medico != 9999)s_espera++;
