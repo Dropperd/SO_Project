@@ -7,6 +7,7 @@
 #include <sys/wait.h>
 #include <string.h>
 #include <fcntl.h>
+#include "apue.h"
 
 #define MAX100 100
 
@@ -19,10 +20,11 @@ typedef struct line{
 }LINE;
 
 int main(int argc, char **argv, char **envp){		// Command Line Arguments
-	char temp[1],buf[100];
-	int fds[2],source,destination,wcf;
+	char temp[1],msg[100],buf[100];
+	int fds[2],source,destination,wcf,pc;
 	int N_LINHAS;
 	char buffer[1024],wc[10];
+	pipe(fds);
 	pid_t pid;
 	if (argc < 3){
 		perror("Insufficient arguments");
@@ -74,6 +76,7 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 			exit(1);
 		}
 		if (pids[i] == 0) { 
+			close(fds[0]);
 			pid_t mypid=getpid();
 			tmpStamp+=i;
 			for(int j=i;j<N_LINHAS-1;j+=number_pids){
@@ -88,21 +91,27 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 				}
 				tmpLines=linhas;
 				sprintf(buf,"%d$%d,%ld,espera_triagem#%ld\n",mypid,j,timestamp,s_admissao);
-				write(destination,buf,strlen(buf));
+				writen(fds[1],buf,strlen(buf));
 				sprintf(buf,"%d$%d,%ld,sala_triagem#%ld\n",mypid,j,timestamp,s_triagem);
-				write(destination,buf,strlen(buf));
+				writen(fds[1],buf,strlen(buf));
 				sprintf(buf,"%d$%d,%ld,sala_espera#%ld\n",mypid,j,timestamp,s_espera);
-				write(destination,buf,strlen(buf));
+				writen(fds[1],buf,strlen(buf));
 				sprintf(buf,"%d$%d,%ld,sala_consulta#%ld\n",mypid,j,timestamp,s_consulta);
-				write(destination,buf,strlen(buf));
+				writen(fds[1],buf,strlen(buf));
 				//pid$id,timestamp,sala#ocupação
 				s_admissao=s_triagem=s_espera=s_consulta=0;
 				}
 				tmpStamp+=number_pids;
 			}
+			close(fds[1]);
 			exit(0);
 		}	
 	}
+	close(fds[1]);
+	while(pc=readn(fds[0],msg,strlen(msg))>0){
+		writen(destination,msg,strlen(msg));
+	}
+	close(fds[0]);
 	for(int l=0;l<number_pids;l++){
 		int result;
 		waitpid(pids[l],&result,0);
@@ -112,4 +121,52 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 	}
 	close(destination);
 	return 0;
+}
+
+
+/*FUNCOES DE LEITURA E ESCRITA ADICIONAIS (READN & WRITEN)*/
+
+
+ssize_t             /* Write "n" bytes to a descriptor  */
+writen(int fd, const void *ptr, size_t n)
+{
+	size_t		nleft;
+	ssize_t		nwritten;
+
+	nleft = n;
+	while (nleft > 0) {
+		if ((nwritten = write(fd, ptr, nleft)) < 0) {
+			if (nleft == n)
+				return(-1); /* error, return -1 */
+			else
+				break;      /* error, return amount written so far */
+		} else if (nwritten == 0) {
+			break;
+		}
+		nleft -= nwritten;
+		ptr   += nwritten;
+	}
+	return(n - nleft);      /* return >= 0 */
+}
+
+ssize_t             /* Read "n" bytes from a descriptor  */
+readn(int fd, void *ptr, size_t n)
+{
+	size_t		nleft;
+	ssize_t		nread;
+
+	nleft = n;
+	while (nleft > 0) {
+		if ((nread = read(fd, ptr, nleft)) < 0) {
+			if (nleft == n)
+				return(-1); /* error, return -1 */
+			else
+				break;      /* error, return amount read so far */
+		} else if (nread == 0) {
+			break;          /* EOF */
+		}
+		nleft -= nread;
+		ptr   += nread;
+	}
+	return(n - nleft);      /* return >= 0 */
 }
