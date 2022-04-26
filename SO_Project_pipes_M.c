@@ -1,10 +1,11 @@
 #include "functions.h"
 
 int main(int argc, char **argv, char **envp){		// Command Line Arguments
-	char temp[1],buf[100];
-	int fds[2],source,destination,wcf;
-	int N_LINHAS;
+	char temp[1],msg[100],buf[100];
+	int fds[2],source,destination,wcf,pc;
+	int N_LINHAS,N_ANOS;
 	char buffer[1024],wc[10];
+	pipe(fds);
 	pid_t pid;
 	if (argc < 3){
 		perror("Insufficient arguments");
@@ -44,6 +45,27 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 		tmpLines++;
 	}
 	tmpLines=linhas;	//reset no apontador temporario para a struct
+	/*CALCULAR NUMERO DE ANOS, CRIAR UM ARRAY COM TAMANHO N_ANOS E POPULA-LO COM OS ANOS*/
+	N_ANOS=number_years(tmpLines,N_LINHAS-1);
+	int array_anos[N_ANOS];
+	int slots=0,year,flag=0;
+	for(int y=0;y<N_LINHAS-1;y++){
+		if(tmpLines->admissao!=9999 && tmpLines->inicio_triagem!=9999 && tmpLines->fim_triagem != 9999 && tmpLines->inicio_medico !=9999 && tmpLines->fim_medico !=9999){
+			for(int o=0;o<N_ANOS;o++){
+				if((year=return_year_tstamp(tmpLines->admissao))==array_anos[o]){
+					flag=1;
+					break;
+				}
+			}
+			if(flag==0){
+				array_anos[slots]=year;
+				slots++;
+			}
+		}
+		flag=0;
+		tmpLines++;
+	}
+	tmpLines=linhas;	//reset no apontador temporario para a struct
 	/*LOOP PARA IMPRIMIR TODAS AS OCCORRENCIAS DA STRUCT
 	for(int i=0;i<N_LINHAS-1;i++){
 		printf("LINHA:%d ||| %ld %ld %ld %ld %ld\n",i+2,tmpLines->admissao,tmpLines->inicio_triagem,tmpLines->fim_triagem,tmpLines->inicio_medico,tmpLines->fim_medico);
@@ -56,12 +78,13 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 			exit(1);
 		}
 		if (pids[i] == 0) { 
+			close(fds[0]);
 			pid_t mypid=getpid();
 			tmpStamp+=i;
-			for(int j=i;j<N_LINHAS-1;j+=number_pids){
+			for(int j=i;j<3-1;j+=number_pids){
 				timestamp=tmpStamp->admissao;
 				if(timestamp!=9999){ 
-				for(int k=0;k<N_LINHAS-1;k++){
+				for(int k=0;k<3-1;k++){
 						if(tmpLines->admissao < timestamp && timestamp <= tmpLines->inicio_triagem && tmpLines->admissao != 9999 && tmpLines->inicio_triagem != 9999)s_admissao++;
 						if(tmpLines->inicio_triagem < timestamp && timestamp <= tmpLines->fim_triagem && tmpLines->inicio_triagem != 9999 && tmpLines->fim_triagem != 9999)s_triagem++;
 						if(tmpLines->fim_triagem < timestamp && timestamp <= tmpLines->inicio_medico && tmpLines->fim_triagem != 9999 && tmpLines->inicio_medico != 9999)s_espera++;
@@ -70,21 +93,35 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 				}
 				tmpLines=linhas;
 				sprintf(buf,"%d$%d,%ld,espera_triagem#%ld\n",mypid,j,timestamp,s_admissao);
-				write(destination,buf,strlen(buf));
+				writen(fds[1],buf,strlen(buf));
 				sprintf(buf,"%d$%d,%ld,sala_triagem#%ld\n",mypid,j,timestamp,s_triagem);
-				write(destination,buf,strlen(buf));
+				writen(fds[1],buf,strlen(buf));
 				sprintf(buf,"%d$%d,%ld,sala_espera#%ld\n",mypid,j,timestamp,s_espera);
-				write(destination,buf,strlen(buf));
+				writen(fds[1],buf,strlen(buf));
 				sprintf(buf,"%d$%d,%ld,sala_consulta#%ld\n",mypid,j,timestamp,s_consulta);
-				write(destination,buf,strlen(buf));
+				writen(fds[1],buf,strlen(buf));
 				//pid$id,timestamp,sala#ocupação
 				s_admissao=s_triagem=s_espera=s_consulta=0;
 				}
 				tmpStamp+=number_pids;
 			}
+			close(fds[1]);
 			exit(0);
 		}	
 	}
+	close(fds[1]);
+	for(int i=0;i<N_ANOS;i++){
+		if ((pids_M[i]=fork())==-1){
+			perror("Fork");
+			exit(1);
+		}
+	}
+	while(pc=readn(fds[0],msg,strlen(msg))>0){
+		writen(destination,msg,strlen(msg));
+
+	}
+	close(fds[0]);
+	int pids_M[N_ANOS];
 	for(int l=0;l<number_pids;l++){
 		int result;
 		waitpid(pids[l],&result,0);
@@ -94,4 +131,81 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 	}
 	close(destination);
 	return 0;
+}
+
+
+/*FUNCAO DE CONVERSAO UNIX TIMESTAMP PARA EXTRAIR ANO*/
+
+int return_year_formatted_tstamp(char * msg){
+	long r_timestamp;
+	sscanf(msg,"%*[^,] %*[,] %ld %*[^\n] %*[\n]",&r_timestamp);
+	return return_year_tstamp(r_timestamp);
+}
+
+int return_year_tstamp(long timestamp){
+	timestamp_timing = *localtime(&timestamp);
+	return timestamp_timing.tm_year+1900;
+}
+
+/*FUNCOES DE LEITURA E ESCRITA ADICIONAIS (READN & WRITEN)*/
+
+
+ssize_t             /* Write "n" bytes to a descriptor  */
+writen(int fd, const void *ptr, size_t n)
+{
+	size_t		nleft;
+	ssize_t		nwritten;
+
+	nleft = n;
+	while (nleft > 0) {
+		if ((nwritten = write(fd, ptr, nleft)) < 0) {
+			if (nleft == n)
+				return(-1); /* error, return -1 */
+			else
+				break;      /* error, return amount written so far */
+		} else if (nwritten == 0) {
+			break;
+		}
+		nleft -= nwritten;
+		ptr   += nwritten;
+	}
+	return(n - nleft);      /* return >= 0 */
+}
+
+ssize_t             /* Read "n" bytes from a descriptor  */
+readn(int fd, void *ptr, size_t n)
+{
+	size_t		nleft;
+	ssize_t		nread;
+
+	nleft = n;
+	while (nleft > 0) {
+		if ((nread = read(fd, ptr, nleft)) < 0) {
+			if (nleft == n) 	
+				return(-1); /* error, return -1 */
+			else
+				break;      /* error, return amount read so far */
+		} else if (nread == 0) {
+			break;          /* EOF */
+		}
+		nleft -= nread;
+		ptr   += nread;
+	}
+	return(n - nleft);      /* return >= 0 */
+}
+
+int number_years(LINE * temp, int N_LINHAS){
+	LINE * start = temp;
+	int year=0,n_years=0,value=0;
+	for(int i=0;i<N_LINHAS;i++){
+		if(temp->admissao!=9999 && temp->inicio_triagem!=9999 && temp->fim_triagem != 9999 && temp->inicio_medico !=9999 && temp){
+			if((value=return_year_tstamp(temp->admissao))!=year){
+				n_years++;
+				year=value;
+			}
+		}
+		temp++;
+	}
+	temp=start;
+	return n_years;
 }
