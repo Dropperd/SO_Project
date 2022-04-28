@@ -1,21 +1,27 @@
 #ifndef	_FUNCTIONS_H
 #define	_FUNCTIONS_H
 
-#include <sys/types.h>
-#include <unistd.h>
+#include "apue.h"
+#include <ctype.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/uio.h>
 #include <sys/wait.h>
-#include <string.h>
-#include <fcntl.h>
 #include <time.h>
-#include "apue.h"
+#include <unistd.h>
 
 #define MAX100 100
+#define MAX50 50
 #define MAX20 20
+#define MAX10 10
 #define M 8
+
+#define BUF_SIZE 4096
+#define LISTENQ 10
 
 struct tm formatted_timing;
 struct tm timestamp_timing;
