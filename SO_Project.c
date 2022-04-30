@@ -1,7 +1,7 @@
 #include "functions.h"
 
 int main(int argc, char **argv, char **envp){		// Command Line Arguments
-	char temp[1],wc[MAX10],buf[MAX100],filename_str[MAX100],input[MAX100];
+	char temp[1],wc[MAX10],buf[MAX100],filename_str[MAX1024],input[MAX100];
 	int N_LINHAS,destination,wcf;
 	if (argc != 4){
 		perror("Usage : ./program n_of_children input output");

@@ -3,7 +3,7 @@
 char *socket_path = "/tmp/socket";
 
 int main(int argc, char **argv, char **envp){		// Command Line Arguments
-	char wc[MAX10],filename_str[MAX100],input[MAX100];
+	char wc[MAX10],filename_str[MAX1024],input[MAX100],itoa_position[MAX5],itoa_n_pids[MAX5];
 	int N_LINHAS,destination,wcfd;
 	if (argc != 4){
 		perror("Usage : ./program n_of_children input output");
@@ -13,16 +13,7 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 	int pids[number_pids];
 	strcpy(input,argv[2]);
 	destination=open(argv[3], O_CREAT | O_TRUNC | O_WRONLY, 0666);
-	sprintf(filename_str,"wc -l < %s > /tmp/wc.txt",input);
-	system(filename_str);
-	wcfd = open("/tmp/wc.txt",O_RDONLY);
-	if(wcfd == -1) {
-		perror ("Opening WC File");
-		exit(-1);
-	}
-	read(wcfd, wc, sizeof(wc));
-	N_LINHAS=atoi(wc);
-	close(wcf);
+	sprintf(itoa_n_pids,"%d",number_pids);
 	for(int i=0;i<number_pids;i++){ //create child processes
 		if ((pids[i]=fork())==-1){
 			perror("Fork");
@@ -30,7 +21,8 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 		}
 		if (pids[i] == 0) {
 			//n_filhos,i,input
-			execlp("./so_project_client",number_pids,i,input,"NULL");
+			sprintf(itoa_position,"%d",i);
+			execlp("./so_project_client",itoa_n_pids,itoa_position,input,NULL);
 			perror("execlp");
 			exit(-1);
 		}

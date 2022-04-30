@@ -9,15 +9,18 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <sys/uio.h>
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
 
+#define MAX1024 1024
 #define MAX100 100
 #define MAX50 50
 #define MAX20 20
 #define MAX10 10
+#define MAX5 5
 #define M 8
 
 #define BUF_SIZE 4096
