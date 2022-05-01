@@ -41,6 +41,11 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 		}
 		tmpLines++;
 	}
+
+	/*
+	STRUCT DIVIDIDA POR TODOS OS FILHOS CRIA PROBLEMA DE COMPARACOES, MEMORIA TOTAL E A MESMA QUE UMA STRUCT NO PAI MAS OS FILHOS SO FAZEM (N_LINHAS/N_FILHOS) COMPARACOES
+	*/
+
 	fclose(fp);
 	tmpLines=linhas;
 	//variables for the socket
@@ -86,6 +91,7 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
     	}
     	tmpStamp++;
     }
+    close(uds);
 exit(0);
 }
 
