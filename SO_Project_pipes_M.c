@@ -1,8 +1,12 @@
 #include "functions.h"
+//Nao esta funcional
+
+void sigusr1();
 
 int main(int argc, char **argv, char **envp){		// Command Line Arguments
-	char temp[1],msg[MAX100],wc[MAX10],buf[MAX100],filename_str[MAX100],input[MAX100];
+	char temp[1],msg[MAX100],wc[MAX10],buf[MAX100],filename_str[MAX1024],input[MAX100];
 	int fds[2],N_LINHAS,N_ANOS,destination,wcf,pc;
+	pid_t mypid;
 	pipe(fds);
 	if (argc != 4){
 		perror("Usage : ./program n_of_children input output");
@@ -12,7 +16,7 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 	int pids[number_pids];
 	strcpy(input,argv[2]);
 	sprintf(filename_str,"wc -l < %s > /tmp/wc.txt",input);
-	system(filename_str);	
+	system(filename_str);
 	wcf = open("/tmp/wc.txt",O_RDONLY);
 	if(wcf == -1) {
 		perror ("Opening WC File");
@@ -32,7 +36,7 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 		puts("erro fp");
 		exit(-1);
 	}
-	fscanf(fp,"%*s",temp);//apenas ignora a primeira linha do ficheiro
+	fscanf(fp,"%s",temp);//apenas ignora a primeira linha do ficheiro
 	LINE * tmpLines=linhas;	//apontador temporario para nao desconfigurar apontador inicial da struct
 	LINE * tmpStamp=linhas;	//apontador temporario para nao desconfigurar apontador inicial da struct
 	for(int i=0;i<N_LINHAS;i++){
@@ -70,13 +74,13 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 	for(int i=0;i<number_pids;i++){ //create child processes
 		if ((pids[i]=fork())==-1){
 			perror("Fork");
-			exit(-1);
+			exit(1);
 		}
 		if (pids[i] == 0) { 
 			close(fds[0]);
-			pid_t mypid=getpid();
+			mypid=getpid();
 			tmpStamp+=i;
-			for(int j=i;j<N_LINHAS;j+=number_pids){
+			for(int j=i;j<N_LINHAS-1;j+=number_pids){
 				timestamp=tmpStamp->admissao;
 				if(timestamp!=9999){ 
 				for(int k=0;k<N_LINHAS;k++){
@@ -105,18 +109,59 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 		}	
 	}
 	close(fds[1]);
-	for(int i=0;i<N_ANOS;i++){
-		if ((pids_M[i]=fork())==-1){
+	int pipes_M[N_ANOS][2];//declaração do array de arrays de pipes secundário
+	int pids_2[N_ANOS];//declaração do array de pids secundário para os filhos M
+	for(int c=0; c<N_ANOS; c++){//inicialização das pipes secundárias
+   		pipe(pipes_M[c]);
+	}
+	for(int i=0;i<N_ANOS;i++){ //criação dos filhos secundários
+		if ((pids_2[i]=fork())==-1){
 			perror("Fork");
-			exit(-1);
+			exit(1);
+		}
+		signal(SIGUSR1,sigusr1);
+		if (pids_2[i] == 0) { 	
+			while(readn(pipes_M[i][0],msg,strlen(msg))>0){}	
+		}
+		close(pipes_M[i][0]);
+		for (;;){}
+	}
+	//variáveis secundárias
+	int  linha=0, vars=0;
+	long  lotacao_sala;
+	char nome_sala[20],msg_2[MAX100],aux[200];
+	char *token;
+	while(readn(fds[0],msg,strlen(msg))>0){
+		//strcpy(msg_2,msg);
+		//strcpy(aux,msg);
+		strcat(msg_2,msg);
+		token =	strtok(msg,"\n");
+		while(token!=NULL){
+			printf("%s",token);
+			if(token[strlen(token)]=='\n'){
+				vars=sscanf(token,"%d %*[$] %d %*[,] %ld %*[,] %[^#] %*[#] %d %*[\n]",mypid,linha,timestamp,nome_sala,lotacao_sala);
+			}
+			sscanf(token,"%d %*[$] %d %*[,] %ld %*[,] %[^#] %*[#] %d %*[\n]",mypid,linha,timestamp,nome_sala,lotacao_sala);
+				strcpy(msg_2,token);
+				break;
+			
+			year=return_year_tstamp(timestamp);
+			for (int g = 0; g < N_ANOS; g++)
+			{
+				if(year==array_anos[g]){
+					sprintf(buf,"%d$%d,%ld,%s#%ld\n",mypid,linha,timestamp,nome_sala,lotacao_sala);
+					writen(pipes_M[g][1],buf,strlen(buf));
+				}
+			}
+			//mypid,linha,timestamp,lotação_sala=0;
+			//memset(nome_sala,0,sizeof(nome_sala));
+			token =	strtok(msg,"\n");
 		}
 	}
-	while(pc=readn(fds[0],msg,strlen(msg))>0){
-		writen(destination,msg,strlen(msg));
-
+	for(int c=0; c<N_ANOS; c++){//fechar write das pipes secundárias
+   		close(pipes_M[c][1]);
 	}
 	close(fds[0]);
-	int pids_M[N_ANOS];
 	for(int l=0;l<number_pids;l++){
 		int result;
 		waitpid(pids[l],&result,0);
@@ -124,8 +169,20 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 			printf("O processo %d terminou.\n",pids[l]);
 		}
 	}
+	for (int t= 0; t < number_pids; t++)
+	{
+		kill(pids_2[t],SIGUSR1);
+	}
+	
+
 	close(destination);
 	return 0;
+}
+
+void sigusr1(){
+
+	//execlp("./plot.py",,NULL);
+
 }
 
 
