@@ -4,6 +4,8 @@
 #include "apue.h"
 #include <ctype.h>
 #include <fcntl.h>
+#include <pthread.h>
+#include <semaphore.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,6 +14,7 @@
 #include <sys/uio.h>
 #include <sys/wait.h>
 #include <time.h>
+#include <threads.h>
 #include <unistd.h>
 
 #define MAX100 100
@@ -19,6 +22,8 @@
 #define MAX20 20
 #define MAX10 10
 #define M 8
+#define N 20
+#define N_SALAS 4
 
 #define BUF_SIZE 4096
 #define LISTENQ 10
@@ -33,6 +38,19 @@ typedef struct line{
 	long inicio_medico;
 	long fim_medico;
 }LINE;
+
+typedef struct parameters{
+	int i;
+	LINE * linhas;
+	LINE * tmpLines;
+	LINE * tmpStamp;
+}PARAMETERS;
+
+typedef struct product{
+	long timestamp;
+	long ocupacao;
+	char sala[MAX50];
+}PRODUCT;
 
 int return_year_formatted_tstamp(char * msg);
 int return_year_tstamp(long timestamp);
