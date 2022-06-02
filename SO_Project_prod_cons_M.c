@@ -5,13 +5,14 @@ int prodptr=0, consptr=0;
 pthread_mutex_t mutex_prod = PTHREAD_MUTEX_INITIALIZER , mutex_cons = PTHREAD_MUTEX_INITIALIZER;
 sem_t can_prod,can_cons;
 int N_LINHAS;
-int destination;
-int PROD=0, CONS=0,N_ANOS=0;
+int PROD=0, CONS=0 ,N_ANOS=0;
 LINE * tmpLines;
 LINE * tmpReset;
 int condicao_paragem;
-int flag_cons;
 int flag_prod;
+int flag_cons;
+int file_descriptors[MAX100];
+int array_anos[MAX100];
 
 PRODUCT calcular(LINE * i, int sala){
 	long tstamp=i->admissao;
@@ -58,19 +59,15 @@ PRODUCT calcular(LINE * i, int sala){
 }
 
 PRODUCT produce(void * params,int j){
-	long i=(long)params;
+	int i=(int)params;
 	LINE * tempForThread = tmpReset;
 	PRODUCT return_prod;
-	return_prod=calcular((tmpReset+i),j);
-	if(j==N_SALAS){
-		params+=PROD;
-	}
+	return_prod=calcular((tempForThread+i),j);
 	return return_prod;
 }
 
 void* producer(void * params){
 	while(flag_prod<condicao_paragem){
-		long increment=(long)
 		for(int j=0;j<N_SALAS;j++){
 			PRODUCT item=produce(params,j);
 			sem_wait(&can_prod);
@@ -81,6 +78,7 @@ void* producer(void * params){
 			pthread_mutex_unlock(&mutex_prod);
 			sem_post(&can_cons);
 		}
+		params+=PROD;
 	}
 	pthread_exit(0);
 }
@@ -88,7 +86,14 @@ void* producer(void * params){
 void consume(PRODUCT p){
 	char buf[MAX100];
 	sprintf(buf,"%ld,%s#%ld\n",p.timestamp,p.sala,p.ocupacao);
-	write(destination,buf,strlen(buf));
+	int ano=0;
+	for(int i=0;i<N_ANOS;i++){
+		if(return_year_tstamp(p.timestamp)==array_anos[i]){
+			ano=i;
+			break;
+		}
+	}
+	write(file_descriptors[ano],buf,strlen(buf));
 }
 
 void* consumer(){
@@ -99,7 +104,7 @@ void* consumer(){
 			item=buffer[consptr];
 			consume(item);
 			consptr=(consptr+1)%N;
-			flag_prod++;
+			flag_cons++;
 		pthread_mutex_unlock(&mutex_cons);
 		sem_post(&can_prod);
 	}
@@ -107,10 +112,10 @@ void* consumer(){
 }
 
 int main(int argc, char **argv, char **envp){
-	char temp[1],msg[MAX100],wc[MAX10],buf[MAX100],filename_str[MAX100],input[MAX100];
-	int fds[2],N_ANOS,wcf,pc;
-	if (argc != 5){
-		perror("Usage : ./program n_producers n_consumers input output");
+	char temp[1],msg[MAX100],wc[MAX10],buf[MAX100],filename_str[MAX100],input[MAX100],outputname[MAX100];
+	int fds[2],wcf,pc;
+	if (argc != 4){
+		perror("Usage : ./program n_producers n_consumers input");
 		exit(-1);
 	}
 	PROD = atoi(argv[1]);
@@ -126,11 +131,6 @@ int main(int argc, char **argv, char **envp){
 	read(wcf, wc, sizeof(wc));
 	N_LINHAS=atoi(wc)-1;				//discard first line
 	close(wcf);
-	destination = open(argv[4], O_CREAT | O_TRUNC | O_WRONLY, 0666);
-	if (destination == -1) {
-		perror ("Opening Destination File");
-		exit(-1);
-	}
 	LINE * linhas = (LINE*)calloc(N_LINHAS,sizeof(LINE)); //alocacao de memoria
 	FILE *fp=fopen(input,"r");
 	if(fp==NULL){
@@ -147,6 +147,27 @@ int main(int argc, char **argv, char **envp){
 	fclose(fp);
 	tmpLines=linhas;
 	N_ANOS=number_years(tmpLines,N_LINHAS);
+	int slots=0,year,flag=0;
+	for(int y=0;y<N_LINHAS;y++){
+		if(tmpLines->admissao!=9999 && tmpLines->inicio_triagem!=9999 && tmpLines->fim_triagem != 9999 && tmpLines->inicio_medico !=9999 && tmpLines->fim_medico !=9999){
+			for(int o=0;o<N_ANOS;o++){
+				if((year=return_year_tstamp(tmpLines->admissao))==array_anos[o]){
+					flag=1;
+					break;
+				}
+			}
+			if(flag==0){
+				array_anos[slots]=year;
+				slots++;
+			}
+		}
+		flag=0;
+		tmpLines++;
+	}
+	for(int k=0;k<N_ANOS;k++){
+		sprintf(outputname,"output_%d.txt",array_anos[k]);
+		file_descriptors[k]=open(outputname, O_CREAT | O_TRUNC | O_WRONLY, 0666);
+	}
 	condicao_paragem=N_LINHAS*N_SALAS;
 	flag_cons=0,flag_prod=0;
 	sem_init(&can_prod, 0, N);
@@ -164,6 +185,34 @@ int main(int argc, char **argv, char **envp){
 	for(int j=0;j<CONS;j++){
 		pthread_join(consumers[j], NULL);
 	}
-	close(destination);
+	for(int z=0;z<N_ANOS;z++){
+		close(file_descriptors[z]);
+	}
 	return 0;
+}
+
+int return_year_formatted_tstamp(char * msg){
+	long r_timestamp;
+	sscanf(msg,"%*[^,] %*[,] %ld %*[^\n] %*[\n]",&r_timestamp);
+	return return_year_tstamp(r_timestamp);
+}
+
+int return_year_tstamp(long timestamp){
+	timestamp_timing = *localtime(&timestamp);
+	return timestamp_timing.tm_year+1900;
+}
+int number_years(LINE * temp, int N_LINHAS){
+	LINE * start = temp;
+	int year=0,n_years=0,value=0;
+	for(int i=0;i<N_LINHAS;i++){
+		if(temp->admissao!=9999 && temp->inicio_triagem!=9999 && temp->fim_triagem != 9999 && temp->inicio_medico !=9999 && temp){
+			if((value=return_year_tstamp(temp->admissao))!=year){
+				n_years++;
+				year=value;
+			}
+		}
+		temp++;
+	}
+	temp=start;
+	return n_years;
 }

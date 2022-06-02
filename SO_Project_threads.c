@@ -9,7 +9,7 @@ LINE * tmpLines;
 LINE * tmpReset;
 
 void* work(void* params){
-	int i=(long)params;
+	int i=(int)params;
 	char buf[MAX100];
 	LINE* mytmpStamp=tmpReset;
 	LINE* mytmpLines=tmpLines;
@@ -35,10 +35,11 @@ void* work(void* params){
 			sprintf(buf,"%ld,sala_consulta#%ld\n",timestamp,s_consulta);
 			write(destination,buf,strlen(buf));
 			pthread_mutex_lock(&mutex_ocupacoes);
-			ocupacoes++;
+				ocupacoes++;
 			pthread_mutex_unlock(&mutex_ocupacoes);
 			s_admissao=s_triagem=s_espera=s_consulta=0;
 		}
+		mytmpStamp+=N_THREADS;
 	}
 	pthread_exit(0);
 }

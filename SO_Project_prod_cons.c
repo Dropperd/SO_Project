@@ -8,8 +8,10 @@ int N_LINHAS;
 int destination;
 int PROD=0, CONS=0;
 LINE * tmpLines;
-LINE * tmpStamp;
 LINE * tmpReset;
+int condicao_paragem;
+int flag_prod;
+int flag_cons;
 
 PRODUCT calcular(LINE * i, int sala){
 	long tstamp=i->admissao;
@@ -56,27 +58,26 @@ PRODUCT calcular(LINE * i, int sala){
 }
 
 PRODUCT produce(void * params,int j){
-	long i=(long)params;
+	int i=(int)params;
 	LINE * tempForThread = tmpReset;
 	PRODUCT return_prod;
-	return_prod=calcular((tmpReset+i),j);
-	if(j==N_SALAS){
-		params+=PROD;
-	}
+	return_prod=calcular((tempForThread+i),j);
 	return return_prod;
 }
 
 void* producer(void * params){
-	for(int i=0;i<N_LINHAS;i++){
+	while(flag_prod<condicao_paragem){
 		for(int j=0;j<N_SALAS;j++){
 			PRODUCT item=produce(params,j);
 			sem_wait(&can_prod);
 			pthread_mutex_lock(&mutex_prod);
 				buffer[prodptr]=item;
 				prodptr=(prodptr+1)%N;
+				flag_prod++;
 			pthread_mutex_unlock(&mutex_prod);
 			sem_post(&can_cons);
 		}
+		params+=PROD;
 	}
 	pthread_exit(0);
 }
@@ -88,13 +89,14 @@ void consume(PRODUCT p){
 }
 
 void* consumer(){
-	for(int i=0;i<N_LINHAS*N_SALAS;i++){
+	while(flag_cons<condicao_paragem){
 		PRODUCT item;
 		sem_wait(&can_cons);
 		pthread_mutex_lock(&mutex_cons);
 			item=buffer[consptr];
 			consume(item);
 			consptr=(consptr+1)%N;
+			flag_cons++;
 		pthread_mutex_unlock(&mutex_cons);
 		sem_post(&can_prod);
 	}
@@ -134,7 +136,6 @@ int main(int argc, char **argv, char **envp){
 	}
 	fscanf(fp,"%*s",temp);//apenas ignora a primeira linha do ficheiro
 	tmpLines=linhas;	//apontador temporario para nao desconfigurar apontador inicial da struct
-	tmpStamp=linhas;	//apontador temporario para nao desconfigurar apontador inicial da struct
 	for(int i=0;i<N_LINHAS;i++){
 		fscanf(fp,"%ld %*[;] %ld %*[;] %ld %*[;] %ld %*[;] %ld %*[\n]",&(tmpLines->admissao),&(tmpLines->inicio_triagem),&(tmpLines->fim_triagem),&(tmpLines->inicio_medico),&(tmpLines->fim_medico));
 		tmpLines++;
@@ -142,6 +143,8 @@ int main(int argc, char **argv, char **envp){
 	fclose(fp);
 	tmpLines=linhas;
 	tmpReset=linhas;
+	condicao_paragem=N_LINHAS*N_SALAS;
+	flag_cons=0,flag_prod=0;
 	sem_init(&can_prod, 0, N);
 	sem_init(&can_cons, 0, 0);
 	pthread_t consumers[CONS],producers[PROD];
