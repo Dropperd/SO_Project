@@ -14,10 +14,7 @@ void* work(void* params){
 	LINE* tmpLines=p->tmpLines;
 	int i=p->i;
 	tmpStamp+=i;
-	long s_admissao=0;
-	long s_triagem=0;
-	long s_espera=0;
-	long s_consulta=0;
+	long s_admissao=0,s_triagem=0,s_espera=0,s_consulta=0;
 	for(int j=i;j<N_LINHAS;j+=N_THREADS){
 		int timestamp=tmpStamp->admissao;
 		if(timestamp!=9999){ 
