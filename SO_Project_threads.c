@@ -5,27 +5,27 @@ int ocupacoes=0;
 int N_THREADS;
 int N_LINHAS;
 int destination;
+LINE * tmpLines;
+LINE * tmpReset;
 
 void* work(void* params){
+	int i=(long)params;
 	char buf[MAX100];
-	PARAMETERS *p=params;
-	LINE* linhas=p->linhas;
-	LINE* tmpStamp=p->tmpStamp;
-	LINE* tmpLines=p->tmpLines;
-	int i=p->i;
-	tmpStamp+=i;
+	LINE* mytmpStamp=tmpReset;
+	LINE* mytmpLines=tmpLines;
+	mytmpStamp+=i;
 	long s_admissao=0,s_triagem=0,s_espera=0,s_consulta=0;
 	for(int j=i;j<N_LINHAS;j+=N_THREADS){
-		int timestamp=tmpStamp->admissao;
+		int timestamp=mytmpStamp->admissao;
 		if(timestamp!=9999){ 
 			for(int k=0;k<N_LINHAS;k++){
-				if(tmpLines->admissao < timestamp && timestamp <= tmpLines->inicio_triagem && tmpLines->admissao != 9999 && tmpLines->inicio_triagem != 9999)s_admissao++;
-				if(tmpLines->inicio_triagem < timestamp && timestamp <= tmpLines->fim_triagem && tmpLines->inicio_triagem != 9999 && tmpLines->fim_triagem != 9999)s_triagem++;
-				if(tmpLines->fim_triagem < timestamp && timestamp <= tmpLines->inicio_medico && tmpLines->fim_triagem != 9999 && tmpLines->inicio_medico != 9999)s_espera++;
-				if(tmpLines->inicio_medico < timestamp && timestamp <= tmpLines->fim_medico && tmpLines->inicio_medico != 9999 && tmpLines->fim_medico != 9999)s_consulta++;
-				tmpLines++;
+				if(mytmpLines->admissao < timestamp && timestamp <= mytmpLines->inicio_triagem && mytmpLines->admissao != 9999 && mytmpLines->inicio_triagem != 9999)s_admissao++;
+				if(mytmpLines->inicio_triagem < timestamp && timestamp <= mytmpLines->fim_triagem && mytmpLines->inicio_triagem != 9999 && mytmpLines->fim_triagem != 9999)s_triagem++;
+				if(mytmpLines->fim_triagem < timestamp && timestamp <= mytmpLines->inicio_medico && mytmpLines->fim_triagem != 9999 && mytmpLines->inicio_medico != 9999)s_espera++;
+				if(mytmpLines->inicio_medico < timestamp && timestamp <= mytmpLines->fim_medico && mytmpLines->inicio_medico != 9999 && mytmpLines->fim_medico != 9999)s_consulta++;
+				mytmpLines++;
 			}
-			tmpLines=linhas;
+			mytmpLines=tmpReset;
 			sprintf(buf,"%ld,espera_triagem#%ld\n",timestamp,s_admissao);
 			write(destination,buf,strlen(buf));
 			sprintf(buf,"%ld,sala_triagem#%ld\n",timestamp,s_triagem);
@@ -75,8 +75,8 @@ int main(int argc, char **argv, char **envp){
 		exit(-1);
 	}
 	fscanf(fp,"%*s",temp);//apenas ignora a primeira linha do ficheiro
-	LINE * tmpLines=linhas;	//apontador temporario para nao desconfigurar apontador inicial da struct
-	LINE * tmpStamp=linhas;	//apontador temporario para nao desconfigurar apontador inicial da struct
+	tmpLines=linhas;
+	tmpReset=linhas;
 	for(int i=0;i<N_LINHAS;i++){
 		fscanf(fp,"%ld %*[;] %ld %*[;] %ld %*[;] %ld %*[;] %ld %*[\n]"
 			,&(tmpLines->admissao),&(tmpLines->inicio_triagem),&(tmpLines->fim_triagem),&(tmpLines->inicio_medico),&(tmpLines->fim_medico));
@@ -86,12 +86,7 @@ int main(int argc, char **argv, char **envp){
 	tmpLines=linhas;
 	pthread_t worker_threads[N_THREADS];
 	for(int i=0;i<N_THREADS;i++){
-		PARAMETERS * p = (PARAMETERS*)calloc(1,sizeof(PARAMETERS));
-		p->i=i;
-		p->linhas=linhas;
-		p->tmpStamp=tmpStamp;
-		p->tmpLines=tmpLines;
-		pthread_create(&worker_threads[i], NULL, work, (void*)p);
+		pthread_create(&worker_threads[i], NULL, work, (void*)i);
 	}
 	while(flag<N_LINHAS){
 		sleep(1);

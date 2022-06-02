@@ -39,13 +39,6 @@ typedef struct line{
 	long fim_medico;
 }LINE;
 
-typedef struct parameters{
-	int i;
-	LINE * linhas;
-	LINE * tmpLines;
-	LINE * tmpStamp;
-}PARAMETERS;
-
 typedef struct product{
 	long timestamp;
 	long ocupacao;
