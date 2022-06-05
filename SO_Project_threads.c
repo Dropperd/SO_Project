@@ -96,6 +96,7 @@ int main(int argc, char **argv, char **envp){
 		flag=ocupacoes;
 		pthread_mutex_unlock(&mutex_ocupacoes);
 	}
+	printf("--- Calculo de ocupacoes concluidas ---");
 	for(int i=0;i<N_THREADS;i++){
 		pthread_join(worker_threads[i],NULL);
 	}

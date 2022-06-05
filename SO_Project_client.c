@@ -17,35 +17,27 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
 	}
 	read(wcf, wc, sizeof(wc));
 	N_LINHAS=atoi(wc)-1;
+	/**
+	objetivo seria dividir a carga pelos processos mas dessa forma cada timestamp faria comparaçoes para salas em apenas N_LINHAS/N_PROCESSOS linhas
+
 	N_LINHAS_STRUCT=0;
 	if((N_LINHAS%number_pids)!=0)
 		N_LINHAS_STRUCT=1;
-	N_LINHAS_STRUCT+=(N_LINHAS/number_pids);
+	N_LINHAS_STRUCT+=(N_LINHAS/number_pids);*/
 	close(wcf);
-	LINE * linhas = (LINE*)calloc(N_LINHAS_STRUCT,sizeof(LINE)); //alocacao de memoria
+	LINE * linhas = (LINE*)calloc(N_LINHAS,sizeof(LINE)); //alocacao de memoria
 	FILE *fp=fopen(input,"r");
 	if(fp==NULL){
 		puts("erro fp");
 		exit(-1);
 	}
 	fscanf(fp,"%*s",temp);//apenas ignora a primeira linha do ficheiro
-	for(int i=0;i<position;i++){	//salta n linhas inicialmente para comecar a ler na linha correta
-		fscanf(fp,"%*s",temp);
-	}
 	LINE * tmpLines=linhas;	//apontador temporario para nao desconfigurar apontador inicial da struct
 	LINE * tmpStamp=linhas;	//apontador temporario para nao desconfigurar apontador inicial da struct
 	for(int i=0;i<N_LINHAS_STRUCT;i++){
 		fscanf(fp,"%ld %*[;] %ld %*[;] %ld %*[;] %ld %*[;] %ld %*[\n]",&(tmpLines->admissao),&(tmpLines->inicio_triagem),&(tmpLines->fim_triagem),&(tmpLines->inicio_medico),&(tmpLines->fim_medico));
-		for(int j=0;j<number_pids-1;j++){
-			fscanf(fp,"%*s",temp);
-		}
 		tmpLines++;
 	}
-
-	/*
-	STRUCT DIVIDIDA POR TODOS OS FILHOS CRIA PROBLEMA DE COMPARACOES, MEMORIA TOTAL E A MESMA QUE UMA STRUCT NO PAI MAS OS FILHOS SO FAZEM (N_LINHAS/N_FILHOS) COMPARACOES
-	*/
-
 	fclose(fp);
 	tmpLines=linhas;
 	//variables for the socket
@@ -68,10 +60,11 @@ int main(int argc, char **argv, char **envp){		// Command Line Arguments
     }
     long s_admissao=0,s_triagem=0,s_espera=0,s_consulta=0,timestamp;
     pid_t mypid=getpid();
-    for(int j=0;j<N_LINHAS_STRUCT;j++){
+    tmpStamp+=position;
+    for(int j=position;j<N_LINHAS;j+=number_pids){
     	timestamp=tmpStamp->admissao;
     	if(timestamp!=9999){ 
-    		for(int k=0;k<N_LINHAS_STRUCT;k++){
+    		for(int k=0;k<N_LINHAS;k++){
     			if(tmpLines->admissao < timestamp && timestamp <= tmpLines->inicio_triagem && tmpLines->admissao != 9999 && tmpLines->inicio_triagem != 9999)s_admissao++;
     			if(tmpLines->inicio_triagem < timestamp && timestamp <= tmpLines->fim_triagem && tmpLines->inicio_triagem != 9999 && tmpLines->fim_triagem != 9999)s_triagem++;
     			if(tmpLines->fim_triagem < timestamp && timestamp <= tmpLines->inicio_medico && tmpLines->fim_triagem != 9999 && tmpLines->inicio_medico != 9999)s_espera++;
